@@ -1,0 +1,9 @@
+[workspace]
+members = [
+    "crates/rps",
+    "crates/rps-sys",
+]
+
+[workspace.package]
+edition = "2021"
+license = "MIT"
