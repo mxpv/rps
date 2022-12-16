@@ -21,6 +21,13 @@ fn main() {
     build
         .cpp(true)
         .flag("-std=c++14")
+        .flag("-Wno-unused-variable")
+        .flag("-Wno-unused-parameter")
+        .flag("-Wno-missing-field-initializers")
+        .flag("-Wno-unused-private-field")
+        .flag("-Wno-unused-but-set-variable")
+        .flag("-Wno-sign-compare")
+        .flag("-Wno-unused-function")
         .include("RenderPipelineShaders/include")
         .include("RenderPipelineShaders/src")
         // Core
