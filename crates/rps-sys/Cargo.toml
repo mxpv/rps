@@ -1,6 +1,6 @@
 [package]
 name = "rps-sys"
-version = "0.1.0"
+version = "0.2.0"
 description = "Unsafe bindings for RPS API generated with bindgen"
 edition.workspace = true
 license.workspace = true
