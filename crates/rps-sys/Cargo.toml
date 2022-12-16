@@ -1,8 +1,8 @@
 [package]
 name = "rps-sys"
 version = "0.1.0"
+description = "Unsafe bindings for RPS API generated with bindgen"
 edition.workspace = true
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license.workspace = true
 
 [dependencies]
