@@ -192,11 +192,38 @@ impl DeviceBuilder {
 
     /// Creates a device object.
     pub fn build(&self) -> Result<Device, Error> {
-        let mut device = ptr::null_mut();
+        let mut handle = ptr::null_mut();
 
-        call!(ffi::rpsDeviceCreate(&self.create_info, &mut device))?;
+        call!(ffi::rpsDeviceCreate(&self.create_info, &mut handle))?;
 
-        Ok(Device { device })
+        Ok(Device {
+            handle,
+            callbacks: None,
+        })
+    }
+
+    /// Create a device with a dummy runtime.
+    pub fn build_null(&self, callbacks: Box<dyn runtime::Callbacks>) -> Result<Device, Error> {
+        let mut device = self.build()?;
+
+        let runtime_info = ffi::RpsRuntimeDeviceCreateInfo {
+            pUserContext: callbacks.as_ref() as *const _ as *mut _,
+            callbacks: runtime::CALLBACKS,
+        };
+
+        let create_info = ffi::RpsNullRuntimeDeviceCreateInfo {
+            pDeviceCreateInfo: &self.create_info,
+            pRuntimeCreateInfo: &runtime_info,
+        };
+
+        call!(ffi::rpsNullRuntimeDeviceCreate(
+            &create_info,
+            &mut device.handle
+        ))?;
+
+        device.callbacks = Some(callbacks);
+
+        Ok(device)
     }
 }
 
@@ -205,12 +232,15 @@ impl DeviceBuilder {
 /// The RPS device is used as the main state object for the RPS runtime API. It provides a central location for data
 /// and callbacks of the rest of the software stack.
 pub struct Device {
-    device: ffi::RpsDevice,
+    /// Raw handle.
+    handle: ffi::RpsDevice,
+    /// Runtime callbacks (keep alive until the device is destroyed).
+    callbacks: Option<Box<dyn runtime::Callbacks>>,
 }
 
 impl Drop for Device {
     fn drop(&mut self) {
-        unsafe { ffi::rpsDeviceDestroy(self.device) };
+        unsafe { ffi::rpsDeviceDestroy(self.handle) };
     }
 }
 
@@ -218,9 +248,18 @@ impl Drop for Device {
 mod tests {
     use super::*;
 
+    struct Dummy;
+    impl runtime::Callbacks for Dummy {}
+
     #[test]
     fn default_device() {
         let device = DeviceBuilder::default().build().unwrap();
+        drop(device);
+    }
+
+    #[test]
+    fn null_runtime() {
+        let device = DeviceBuilder::new().build_null(Box::new(Dummy)).unwrap();
         drop(device);
     }
 }

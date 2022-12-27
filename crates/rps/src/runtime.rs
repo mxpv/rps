@@ -1,6 +1,6 @@
 //! Runtime API wrappers.
 
-use std::{ffi::CStr, fmt};
+use std::{ffi::CStr, fmt, os::raw::c_void};
 
 use bitflags::bitflags;
 
@@ -693,3 +693,120 @@ impl Format {
         unsafe { ffi::rpsGetFormatElementBytes(self as ffi::RpsFormat) }
     }
 }
+
+/// Callback functions of a runtime.
+pub trait Callbacks {
+    /// Render graph phase build callback.
+    fn build_render_graph_phases(&self) {}
+
+    /// Runtime destruction callback.
+    fn destroy_runtime(&self) {}
+
+    /// Heap creation callback.
+    fn create_heap(&self) {}
+
+    /// Heap destruction callback.
+    fn destroy_heap(&self) {}
+
+    /// Resource creation callback.
+    fn create_resource(&self) {}
+
+    /// Resource destruction callback.
+    fn destroy_resource(&self) {}
+
+    /// Node resource creation callback.
+    fn create_node_resources(&self) {}
+
+    /// Destroys the user defined resources associated with a node.
+    fn destroy_node_resources(&self) {}
+
+    /// Debug marker recording callback.
+    fn record_debug_marker(&self) {}
+
+    /// Debug name setting callback.
+    fn set_debug_name(&self) {}
+}
+
+extern "C" fn build_render_graph_phases(
+    user_data: *mut c_void,
+    _render_graph: ffi::RpsRenderGraph,
+    _phase_info: *mut *const ffi::RpsRenderGraphPhaseInfo,
+    _num_phases: *mut u32,
+) -> ffi::RpsResult {
+    get_callbacks(user_data).build_render_graph_phases();
+    ffi::RpsResult_RPS_OK
+}
+
+extern "C" fn destroy_runtime(user_data: *mut c_void) {
+    get_callbacks(user_data).destroy_runtime();
+}
+
+extern "C" fn create_heap(
+    user_data: *mut c_void,
+    _args: *const ffi::RpsRuntimeOpCreateHeapArgs,
+) -> ffi::RpsResult {
+    get_callbacks(user_data).create_heap();
+    ffi::RpsResult_RPS_OK
+}
+
+extern "C" fn destroy_heap(user_data: *mut c_void, _args: *const ffi::RpsRuntimeOpDestroyHeapArgs) {
+    get_callbacks(user_data).destroy_heap();
+}
+
+extern "C" fn create_resource(
+    user_data: *mut c_void,
+    _args: *const ffi::RpsRuntimeOpCreateResourceArgs,
+) -> ffi::RpsResult {
+    get_callbacks(user_data).create_resource();
+    ffi::RpsResult_RPS_OK
+}
+
+extern "C" fn destroy_resource(
+    user_data: *mut c_void,
+    _args: *const ffi::RpsRuntimeOpDestroyResourceArgs,
+) {
+    get_callbacks(user_data).destroy_resource();
+}
+
+extern "C" fn create_node_resources(
+    user_data: *mut c_void,
+    _args: *const ffi::RpsRuntimeOpCreateNodeUserResourcesArgs,
+) -> ffi::RpsResult {
+    get_callbacks(user_data).create_node_resources();
+    ffi::RpsResult_RPS_OK
+}
+
+extern "C" fn destroy_node_resources(user_data: *mut c_void) {
+    get_callbacks(user_data).destroy_node_resources();
+}
+
+extern "C" fn record_debug_marker(
+    user_data: *mut c_void,
+    _args: *const ffi::RpsRuntimeOpRecordDebugMarkerArgs,
+) {
+    get_callbacks(user_data).record_debug_marker();
+}
+
+extern "C" fn set_debug_name(
+    user_data: *mut c_void,
+    _args: *const ffi::RpsRuntimeOpSetDebugNameArgs,
+) {
+    get_callbacks(user_data).set_debug_name();
+}
+
+fn get_callbacks<'a>(user_data: *mut c_void) -> &'a mut Box<dyn Callbacks> {
+    unsafe { &mut *(user_data as *mut Box<dyn Callbacks>) }
+}
+
+pub(crate) const CALLBACKS: ffi::RpsRuntimeCallbacks = ffi::RpsRuntimeCallbacks {
+    pfnBuildRenderGraphPhases: Some(build_render_graph_phases),
+    pfnDestroyRuntime: Some(destroy_runtime),
+    pfnCreateHeap: Some(create_heap),
+    pfnDestroyHeap: Some(destroy_heap),
+    pfnCreateResource: Some(create_resource),
+    pfnDestroyResource: Some(destroy_resource),
+    pfnCreateNodeResources: Some(create_node_resources),
+    pfnDestroyNodeResources: Some(destroy_node_resources),
+    pfnRecordDebugMarker: Some(record_debug_marker),
+    pfnSetDebugName: Some(set_debug_name),
+};
