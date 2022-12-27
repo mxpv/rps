@@ -1,5 +1,7 @@
 //! Runtime API wrappers.
 
+use std::{ffi::CStr, fmt};
+
 use bitflags::bitflags;
 
 use rps_sys as ffi;
@@ -139,5 +141,399 @@ bitflags! {
 
         /// Bitwise OR of all GPU / CPU access, excluding decorator flags such as RPS_ACCESS_RELAXED_ORDER_BIT and RPS_ACCESS_NO_VIEW_BIT.
         const RPS_ACCESS_ALL_ACCESS_MASK = ffi::RpsAccessFlagBits_RPS_ACCESS_ALL_ACCESS_MASK;
+    }
+}
+
+/// Supported RPS formats.
+#[repr(u32)]
+#[derive(Debug, Copy, Clone)]
+pub enum Format {
+    /// Unknown format.
+    Unknown = ffi::RpsFormat_RPS_FORMAT_UNKNOWN,
+    /// 4-channel RGBA format with each channel being a typeless 32-bit value.
+    R32G32B32A32Typeless = ffi::RpsFormat_RPS_FORMAT_R32G32B32A32_TYPELESS,
+    /// 4-channel RGBA format with each channel being a 32-bit IEEE 754 floating point value.
+    R32G32B32A32Float = ffi::RpsFormat_RPS_FORMAT_R32G32B32A32_FLOAT,
+    /// 4-channel RGBA format with each channel being a 32-bit unsigned integer.
+    R32G32B32A32Uint = ffi::RpsFormat_RPS_FORMAT_R32G32B32A32_UINT,
+    /// 4-channel RGBA format with each channel being a 32-bit signed integer.
+    R32G32B32A32Sint = ffi::RpsFormat_RPS_FORMAT_R32G32B32A32_SINT,
+    /// 3-channel RGB format with each channel being a typeless 32-bit value.
+    R32G32B32Typeless = ffi::RpsFormat_RPS_FORMAT_R32G32B32_TYPELESS,
+    /// 3-channel RGB format with each channel being a 32-bit IEEE 754 floating point value.
+    R32G32B32Float = ffi::RpsFormat_RPS_FORMAT_R32G32B32_FLOAT,
+    /// 3-channel RGB format with each channel being a 32-bit unsigned integer.
+    R32G32B32Uint = ffi::RpsFormat_RPS_FORMAT_R32G32B32_UINT,
+    /// 3-channel RGB format with each channel being a 32-bit signed integer.
+    R32G32B32Sint = ffi::RpsFormat_RPS_FORMAT_R32G32B32_SINT,
+
+    /// 4-channel RGBA format with each channel being a typeless 16-bit value.
+    R16G16B16A16Typeless = ffi::RpsFormat_RPS_FORMAT_R16G16B16A16_TYPELESS,
+    /// 4-channel RGBA format with each channel being a 16-bit floating point value.
+    R16G16B16A16Float = ffi::RpsFormat_RPS_FORMAT_R16G16B16A16_FLOAT,
+    /// 4-channel RGBA format with each channel being a normalized, 16-bit unsigned integer.
+    R16G16B16A16Unorm = ffi::RpsFormat_RPS_FORMAT_R16G16B16A16_UNORM,
+    /// 4-channel RGBA format with each channel being a 16-bit unsigned integer.
+    R16G16B16A16Uint = ffi::RpsFormat_RPS_FORMAT_R16G16B16A16_UINT,
+    /// 4-channel RGBA format with each channel being a normalized, 16-bit signed integer.
+    R16G16B16A16Snorm = ffi::RpsFormat_RPS_FORMAT_R16G16B16A16_SNORM,
+
+    /// 4-channel RGBA format with each channel being a 16-bit signed integer.
+    R16G16B16A16Sint = ffi::RpsFormat_RPS_FORMAT_R16G16B16A16_SINT,
+    /// 2-channel RG format with each channel being a typeless 32-bit value.
+    R32G32Typeless = ffi::RpsFormat_RPS_FORMAT_R32G32_TYPELESS,
+    /// 2-channel RG format with each channel being a 32-bit IEEE 754 floating point value.
+    R32G32Float = ffi::RpsFormat_RPS_FORMAT_R32G32_FLOAT,
+    /// 2-channel RG format with each channel being a 32-bit unsigned integer.
+    R32G32Uint = ffi::RpsFormat_RPS_FORMAT_R32G32_UINT,
+    /// 2-channel RG format with each channel being a 32-bit signed integer.
+    R32G32Sint = ffi::RpsFormat_RPS_FORMAT_R32G32_SINT,
+
+    /// 2-channel RG format with the first channel being a typeless 32-bit value, the second channel a typeless 8-bit
+    /// value and 24 unused bits at the end.
+    R32G8X24Typeless = ffi::RpsFormat_RPS_FORMAT_R32G8X24_TYPELESS,
+
+    /// 2-channel RG format with the first channel being a 32-bit depth value, the second one a 8-bit unsigned integer
+    /// value and 24 unused bits at the end.
+    D32FloatS8X24Uint = ffi::RpsFormat_RPS_FORMAT_D32_FLOAT_S8X24_UINT,
+
+    /// Single channel R format with the channel being a typeless 32-bit IEEE 754 floating point value and additional
+    /// sets of 8 and 24 unused bits afterwards.
+    R32FloatX8X24Typeless = ffi::RpsFormat_RPS_FORMAT_R32_FLOAT_X8X24_TYPELESS,
+
+    /// Single channel R format with 32 unused bits, the channel being an 8-bit unsigned integer value and 24 unused
+    /// bits at the end.
+    X32TypelessG8X24Uint = ffi::RpsFormat_RPS_FORMAT_X32_TYPELESS_G8X24_UINT,
+
+    /// 4-channel RGBA format with the RGB channels being typeless 10-bit values and the A channel being a typeless
+    /// 2-bit value.
+    R10G10B10A2Typeless = ffi::RpsFormat_RPS_FORMAT_R10G10B10A2_TYPELESS,
+
+    /// 4-channel RGBA format with the RGB channels being 10-bit normalized, unsigned integer values and the A channel
+    /// being a 2-bit normalized, unsigned integer value.
+    R10G10B10A2Unorm = ffi::RpsFormat_RPS_FORMAT_R10G10B10A2_UNORM,
+
+    /// 4-channel RGBA format with the RGB channels being 10-bit unsigned integer values and the A channel being a 2-bit
+    /// unsigned integer value.
+    R10G10B10A2Uint = ffi::RpsFormat_RPS_FORMAT_R10G10B10A2_UINT,
+
+    /// 3-channel RGB format with the RG channels being 11-bit floating point values and the B channel being a 10-bit
+    /// floating point value.
+    R11G11B10Float = ffi::RpsFormat_RPS_FORMAT_R11G11B10_FLOAT,
+
+    /// 4-channel RGBA format with all channels being typeless 8-bit values.
+    R8G8B8A8Typeless = ffi::RpsFormat_RPS_FORMAT_R8G8B8A8_TYPELESS,
+
+    /// 4-channel RGBA format with all channels being normalized 8-bit unsigned integers.
+    R8G8B8A8Unorm = ffi::RpsFormat_RPS_FORMAT_R8G8B8A8_UNORM,
+    /// 4-channel RGBA format with all channels being normalized 8-bit unsigned integer SRGB values.
+    R8G8B8A8UnormSrgb = ffi::RpsFormat_RPS_FORMAT_R8G8B8A8_UNORM_SRGB,
+    /// 4-channel RGBA format with all channels being 8-bit unsigned integers.
+    R8G8B8A8Uint = ffi::RpsFormat_RPS_FORMAT_R8G8B8A8_UINT,
+    /// 4-channel RGBA format with all channels being normalized, 8-bit signed integers.
+    R8G8B8A8Snorm = ffi::RpsFormat_RPS_FORMAT_R8G8B8A8_SNORM,
+    /// 4-channel RGBA format with all channels being 8-bit signed integers.
+    R8G8B8A8Sint = ffi::RpsFormat_RPS_FORMAT_R8G8B8A8_SINT,
+
+    /// 2-channel RG format with each channel being a typeless 16-bit value.
+    R16G16Typeless = ffi::RpsFormat_RPS_FORMAT_R16G16_TYPELESS,
+    /// 2-channel RG format with each channel being a 16-bit IEEE 754 floating point value.
+    R16G16Float = ffi::RpsFormat_RPS_FORMAT_R16G16_FLOAT,
+    /// 2-channel RG format with each channel being a normalized, 16-bit unsigned integer.
+    R16G16Unorm = ffi::RpsFormat_RPS_FORMAT_R16G16_UNORM,
+    /// 2-channel RG format with each channel being a 16-bit unsigned integer.
+    R16G16Uint = ffi::RpsFormat_RPS_FORMAT_R16G16_UINT,
+    /// 2-channel RG format with each channel being a normalized, 16-bit signed integer value.
+    R16G16Snorm = ffi::RpsFormat_RPS_FORMAT_R16G16_SNORM,
+    /// 2-channel RG format with each channel being a 16-bit signed integer.
+    R16G16Sint = ffi::RpsFormat_RPS_FORMAT_R16G16_SINT,
+
+    /// Single channel R format with the channel being a typeless 32-bit value.
+    R32Typeless = ffi::RpsFormat_RPS_FORMAT_R32_TYPELESS,
+    /// Single channel R format with the channel being a 32-bit IEEE 754 floating point depth value.
+    D32Float = ffi::RpsFormat_RPS_FORMAT_D32_FLOAT,
+    /// Single channel R format with the channel being a 32-bit IEEE 754 floating point value.
+    R32Float = ffi::RpsFormat_RPS_FORMAT_R32_FLOAT,
+    /// Single channel R format with the channel being a 32-bit unsigned integer.
+    R32Uint = ffi::RpsFormat_RPS_FORMAT_R32_UINT,
+    /// Single channel R format with the channel being a 32-bit signed integer.
+    R32Sint = ffi::RpsFormat_RPS_FORMAT_R32_SINT,
+
+    /// 2-channel RG format with the first channel being a typeless 24-bit value and the second one a typeless 8-bit
+    /// value.
+    R24G8Typeless = ffi::RpsFormat_RPS_FORMAT_R24G8_TYPELESS,
+
+    /// 2-channel RG format with the first channel being a normalized, 24-bit unsigned integer depth value and the
+    /// second one an 8-bit unsigned integer stencil value.
+    D24UnormS8Uint = ffi::RpsFormat_RPS_FORMAT_D24_UNORM_S8_UINT,
+
+    /// 2-channel RG format with the first channel being a normalized, 24-bit unsigned integer value and the second one
+    /// a typeless 8-bit value.
+    R24UnormX8Typeless = ffi::RpsFormat_RPS_FORMAT_R24_UNORM_X8_TYPELESS,
+
+    /// Single channel R format with 24 unused bits with the channel being an 8-bit unsigned integer.
+    X24TypelessG8Uint = ffi::RpsFormat_RPS_FORMAT_X24_TYPELESS_G8_UINT,
+
+    /// 2-channel RG format with each channel being a typeless 8-bit value.
+    R8G8Typeless = ffi::RpsFormat_RPS_FORMAT_R8G8_TYPELESS,
+    /// 2-channel RG format with each channel being a normalized, 8-bit unsigned integer.
+    R8G8Unorm = ffi::RpsFormat_RPS_FORMAT_R8G8_UNORM,
+    /// 2-channel RG format with each channel being a 8-bit unsigned integer.
+    R8G8Uint = ffi::RpsFormat_RPS_FORMAT_R8G8_UINT,
+    /// 2-channel RG format with each channel being a normalized, 8-bit signed integer.
+    R8G8Snorm = ffi::RpsFormat_RPS_FORMAT_R8G8_SNORM,
+    /// 2-channel RG format with each channel being a 8-bit signed integer.
+    R8G8Sint = ffi::RpsFormat_RPS_FORMAT_R8G8_SINT,
+
+    /// Single channel R format with the channel being a typeless 16-bit value.
+    R16Typeless = ffi::RpsFormat_RPS_FORMAT_R16_TYPELESS,
+
+    /// Single channel R format with the channel being a 16-bit IEEE 754 floating point value.
+    R16Float = ffi::RpsFormat_RPS_FORMAT_R16_FLOAT,
+
+    /// Single channel R format with the channel being a 16-bit IEEE 754 floating point depth value.
+    D16Unorm = ffi::RpsFormat_RPS_FORMAT_D16_UNORM,
+
+    /// Single channel R format with the channel being a 16-bit unsigned integer.
+    R16Unorm = ffi::RpsFormat_RPS_FORMAT_R16_UNORM,
+
+    /// Single channel R format with the channel being a 16-bit signed integer.
+    R16Uint = ffi::RpsFormat_RPS_FORMAT_R16_UINT,
+
+    /// Single channel R format with the channel being a normalized, 16-bit signed integer.
+    R16Snorm = ffi::RpsFormat_RPS_FORMAT_R16_SNORM,
+
+    /// Single channel R format with the channel being a 16-bit signed integer.
+    R16Sint = ffi::RpsFormat_RPS_FORMAT_R16_SINT,
+
+    /// Single channel R format with the channel being a typeless 8-bit value.
+    R8Typeless = ffi::RpsFormat_RPS_FORMAT_R8_TYPELESS,
+    /// Single channel R format with the channel being a normalized, 8-bit unsigned integer.
+    R8Unorm = ffi::RpsFormat_RPS_FORMAT_R8_UNORM,
+    /// Single channel R format with the channel being a 8-bit signed integer.
+    R8Uint = ffi::RpsFormat_RPS_FORMAT_R8_UINT,
+    /// Single channel R format with the channel being a normalized, 8-bit signed integer.
+    R8Snorm = ffi::RpsFormat_RPS_FORMAT_R8_SNORM,
+    /// Single channel R format with the channel being a 8-bit signed integer.
+    R8Sint = ffi::RpsFormat_RPS_FORMAT_R8_SINT,
+    /// Single channel A format with the channel being a normalized, 8-bit unsigned integer.
+    A8Unorm = ffi::RpsFormat_RPS_FORMAT_A8_UNORM,
+    /// Single channel R format with the channel being a 1-bit unsigned integer.
+    R1Unorm = ffi::RpsFormat_RPS_FORMAT_R1_UNORM,
+
+    /// 4-channel RGB format with the first three channels being a 9-bit mantissa. Together with the 5-bit exponent that
+    /// is shared for all three channels they form three 9-bit mantissa + 5-bit exponent floating point value.
+    R9G9B9E5Sharedexp = ffi::RpsFormat_RPS_FORMAT_R9G9B9E5_SHAREDEXP,
+
+    /// 4-channel RGB format with each channel being a normalized, 8-bit unsigned integer. Each block of 32 bits
+    /// describes the RGB values for a pair of pixels that always share one R and B value but have separate G values.
+    R8G8B8G8Unorm = ffi::RpsFormat_RPS_FORMAT_R8G8_B8G8_UNORM,
+
+    /// 4-channel RGB format with each channel being a normalized, 8-bit unsigned integer. Each block of 32 bits
+    /// describes the RGB values for a pair of pixels that always share one R and B value but have separate G values.
+    G8R8G8B8Unorm = ffi::RpsFormat_RPS_FORMAT_G8R8_G8B8_UNORM,
+
+    /// 4-channel block compressed format with the first channel being a typeless 5-bit value, the second one a
+    /// typeless, 6-bit value, the third one a typeless, 5-bit value and the last one a typeless, 0-bit or 1-bit value.
+    BC1Typeless = ffi::RpsFormat_RPS_FORMAT_BC1_TYPELESS,
+
+    /// 4-channel block compressed format with the first channel being a normalized, 5-bit unsigned integer, the second
+    /// one a normalized, 6-bit unsigned integer, the third one a normalized, 5-bit unsigned integer and the last one a
+    /// normalized, 0-bit or 1-bit unsigned integer.
+    BC1Unorm = ffi::RpsFormat_RPS_FORMAT_BC1_UNORM,
+
+    /// 4-channel block compressed format with the first channel being a normalized, 5-bit unsigned integer SRGB value,
+    /// the second one a normalized, 6-bit unsigned integer SRGB value, the third one a normalized, 5-bit unsigned
+    /// integer SRGB valu eand the last one a normalized, 0-bit or 1-bit unsigned integer SRGB value.
+    BC1UnormSrgb = ffi::RpsFormat_RPS_FORMAT_BC1_UNORM_SRGB,
+
+    /// 4-channel block compressed format with the first channel being a typeless 5-bit value, the second one a
+    /// typeless, 6-bit value, the third one a typeless, 5-bit value and the last one a typeless, 4-bit value.
+    BC2Typeless = ffi::RpsFormat_RPS_FORMAT_BC2_TYPELESS,
+
+    /// 4-channel block compressed format with the first channel being a normalized, 5-bit unsigned integer, the second
+    /// one a normalized, 6-bit unsigned integer, the third one a normalized, 5-bit unsigned integer and the last one a
+    /// normalized, 4-bit unsigned integer.
+    BC2Unorm = ffi::RpsFormat_RPS_FORMAT_BC2_UNORM,
+
+    /// 4-channel block compressed format with the first channel being a normalized, 5-bit unsigned integer SRGB value,
+    /// the second one a normalized, 6-bit unsigned integer SRGB value, the third one a normalized, 5-bit unsigned
+    /// integer SRGB value and the last one a normalized, 4-bit unsigned integer SRGB value.
+    BC2UnormSrgb = ffi::RpsFormat_RPS_FORMAT_BC2_UNORM_SRGB,
+
+    /// 4-channel block compressed format with the first channel being a typeless 5-bit value, the second one a
+    /// typeless, 6-bit value, the third one a typeless, 5-bit value and the last one a typeless, 8-bit value.
+    BC3Typeless = ffi::RpsFormat_RPS_FORMAT_BC3_TYPELESS,
+
+    /// 4-channel block compressed format with the first channel being a normalized, 5-bit unsigned integer, the second
+    /// one a normalized, 6-bit unsigned integer, the third one a normalized, 5-bit unsigned integer and the last one a
+    /// normalized, 8-bit unsigned integer.
+    BC3Unorm = ffi::RpsFormat_RPS_FORMAT_BC3_UNORM,
+
+    /// 4-channel block compressed format with the first channel being a normalized, 5-bit unsigned integer SRGB value,
+    /// the second one a normalized, 6-bit unsigned integer SRGB value, the third one a normalized, 5-bit unsigned
+    /// integer SRGB value and the last one a normalized, 0-bit or 1-bit unsigned integer SRGB value.
+    BC3UnormSrgb = ffi::RpsFormat_RPS_FORMAT_BC3_UNORM_SRGB,
+
+    /// Single channel block compressed format with the channel being a typeless 8-bit value.
+    BC4Typeless = ffi::RpsFormat_RPS_FORMAT_BC4_TYPELESS,
+
+    /// Single channel block compressed format with the channel being a normalized, 8-bit signed integer value.
+    BC4Unorm = ffi::RpsFormat_RPS_FORMAT_BC4_UNORM,
+
+    /// Single channel block compressed format with the channel being a normalized, 8-bit signed integer value.
+    BC4Snorm = ffi::RpsFormat_RPS_FORMAT_BC4_SNORM,
+
+    /// 2-channel block compressed format with each channel being a typeless 8-bit value.
+    BC5Typeless = ffi::RpsFormat_RPS_FORMAT_BC5_TYPELESS,
+
+    /// 2-channel block compressed format with each channel being a normalized, 8-bit unsigned integer value.
+    BC5Unorm = ffi::RpsFormat_RPS_FORMAT_BC5_UNORM,
+
+    /// 2-channel block compressed format with each channel being a normalized, 8-bit signed integer value.
+    BC5Snorm = ffi::RpsFormat_RPS_FORMAT_BC5_SNORM,
+
+    /// 3-channel BGR format with the first channel being a normalized, 5-bit unsigned integer, the second one a
+    /// normalized, 6-bit unsigned integer and the third one a normalized, 5-bit unsigned integer.
+    B5G6R5Unorm = ffi::RpsFormat_RPS_FORMAT_B5G6R5_UNORM,
+
+    /// 4-channel BGRA format with the first three channels being a normalized, 5-bit unsigned integer and the last one
+    /// a normalized, 1-bit unsigned integer.
+    B5G5R5A1Unorm = ffi::RpsFormat_RPS_FORMAT_B5G5R5A1_UNORM,
+
+    /// 4-channel BGRA format with each channel being a normalized, 8-bit unsigned integer.
+    B8G8R8A8Unorm = ffi::RpsFormat_RPS_FORMAT_B8G8R8A8_UNORM,
+
+    /// 3-channel BGR format with each channel being a normalized, 8-bit unsigned integer value and 8 unused bits at the
+    /// end.
+    B8G8R8X8Unorm = ffi::RpsFormat_RPS_FORMAT_B8G8R8X8_UNORM,
+
+    /// 4-channel RGB 2.8-biased fixed-point format with the first three channels being a normalized, 10-bit
+    /// unsigned integer and the last one a normalized 2-bit unsigned integer.
+    R10G10B10XrBiasA2Unorm = ffi::RpsFormat_RPS_FORMAT_R10G10B10_XR_BIAS_A2_UNORM,
+
+    /// 4-channel BGRA format with each channel being a typeless 8-bit value.
+    B8G8R8A8Typeless = ffi::RpsFormat_RPS_FORMAT_B8G8R8A8_TYPELESS,
+    /// 4-channel BGRA format with each channel being a normalized, 8-bit unsigned integer SRGB value.
+    B8G8R8A8UnormSrgb = ffi::RpsFormat_RPS_FORMAT_B8G8R8A8_UNORM_SRGB,
+    /// 3-channel BGR format with each channel being a typeless 8-bit value and 8 unused bits at the end.
+    B8G8R8X8Typeless = ffi::RpsFormat_RPS_FORMAT_B8G8R8X8_TYPELESS,
+    /// 3-channel BGR format with each channel being a normalized, 8-bit unsigned integer and 8 unused bits a the end.
+    B8G8R8X8UnormSrgb = ffi::RpsFormat_RPS_FORMAT_B8G8R8X8_UNORM_SRGB,
+
+    /// 3-channel block compressed HDR format with each channel being a typeless 16-bit value.
+    BC6HTypeless = ffi::RpsFormat_RPS_FORMAT_BC6H_TYPELESS,
+
+    /// 3-channel block compressed HDR format with each channel being a 16-bit unsigned "half" floating point value.
+    BC6HUF16 = ffi::RpsFormat_RPS_FORMAT_BC6H_UF16,
+
+    /// 3-channel block compressed HDR format with each channel being a 16-bit signed "half" floating point value.
+    BC6HSF16 = ffi::RpsFormat_RPS_FORMAT_BC6H_SF16,
+
+    /// 3-channel or 4-channel block compressed format with the first three channels being a typeless, 4-7-bit value and
+    /// the last one an optional, typeless 0-8-bit value.
+    BC7Typeless = ffi::RpsFormat_RPS_FORMAT_BC7_TYPELESS,
+
+    /// 3-channel or 4-channel block compressed format with the first three channels being an normalized, 4-7-bit
+    /// unsigned integer and the last one an optional, normalized, 0-8-bit unsigned integer.
+    BC7Unorm = ffi::RpsFormat_RPS_FORMAT_BC7_UNORM,
+
+    /// 3-channel or 4-channel block compressed format with the first three channels being an normalized, 4-7-bit
+    /// unsigned integer and the last one an optional, normalized, 0-8-bit unsigned integer .
+    BC7UnormSrgb = ffi::RpsFormat_RPS_FORMAT_BC7_UNORM_SRGB,
+
+    /// 4-channel video resource format with each channel being a 8-bit value.
+    AYUV = ffi::RpsFormat_RPS_FORMAT_AYUV,
+
+    /// 4-channel video resource format with each of the first three channels being a
+    /// 10-bit value and the last one a 2-bit value.
+    Y410 = ffi::RpsFormat_RPS_FORMAT_Y410,
+
+    /// 4-channel video resource format with each channel being a 16-bit value.
+    Y416 = ffi::RpsFormat_RPS_FORMAT_Y416,
+    /// 2-channel video resource format with each channel being a 8-bit value.
+    NV12 = ffi::RpsFormat_RPS_FORMAT_NV12,
+    /// 2-channel video resource format with each channel being a 16-bit value.
+    P010 = ffi::RpsFormat_RPS_FORMAT_P010,
+    /// 2-channel video resource format with each channel being a 8-bit value.
+    P016 = ffi::RpsFormat_RPS_FORMAT_P016,
+    /// Video resource format with opaque layout.
+    Opaque420 = ffi::RpsFormat_RPS_FORMAT_420_OPAQUE,
+    /// 4-channel video resource format with each channel being a 8-bit value.
+    YUY2 = ffi::RpsFormat_RPS_FORMAT_YUY2,
+    /// 4-channel video resource format with each channel being a 16-bit value.
+    Y210 = ffi::RpsFormat_RPS_FORMAT_Y210,
+    /// 4-channel video resource format with each channel being a 16-bit value.
+    Y216 = ffi::RpsFormat_RPS_FORMAT_Y216,
+    /// 2-channel video resource format with each channel being a 8-bit value.
+    NV11 = ffi::RpsFormat_RPS_FORMAT_NV11,
+    /// 4-bit palletized video resource format.
+    AI44 = ffi::RpsFormat_RPS_FORMAT_AI44,
+    /// 4-bit palletized video resource format.
+    IA44 = ffi::RpsFormat_RPS_FORMAT_IA44,
+    /// RGB video resource format with 8-bit palletization.
+    P8 = ffi::RpsFormat_RPS_FORMAT_P8,
+    /// RGB video resource format with 8-bit palletization.
+    A8P8 = ffi::RpsFormat_RPS_FORMAT_A8P8,
+
+    /// 4-channels BGRA format with each channel being a normalized 4-bit unsigned integer.
+    B4G4R4A4Unorm = ffi::RpsFormat_RPS_FORMAT_B4G4R4A4_UNORM,
+}
+
+impl fmt::Display for Format {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let str = unsafe {
+            let ptr = ffi::rpsFormatGetName(*self as ffi::RpsFormat);
+            CStr::from_ptr(ptr)
+        };
+
+        write!(f, "{:?}", str)
+    }
+}
+
+impl Format {
+    /// Number of formats available.
+    pub const COUNT: usize = ffi::RpsFormat_RPS_FORMAT_COUNT as usize;
+
+    /// Returns whether a format is block compressed.
+    #[inline]
+    pub fn is_block_compressed(self) -> bool {
+        unsafe { ffi::rpsFormatIsBlockCompressed(self as ffi::RpsFormat) != 0 }
+    }
+
+    /// Returns whether a format has a depth or a stencil component.
+    #[inline]
+    pub fn has_depth_stencil(self) -> bool {
+        unsafe { ffi::rpsFormatHasDepthStencil(self as ffi::RpsFormat) != 0 }
+    }
+
+    /// Returns whether a format has a depth component.
+    #[inline]
+    pub fn has_depth(self) -> bool {
+        unsafe { ffi::rpsFormatHasDepth(self as ffi::RpsFormat) != 0 }
+    }
+
+    /// Returns whether a format has a stencil component.
+    #[inline]
+    pub fn has_stencil(self) -> bool {
+        unsafe { ffi::rpsFormatHasStencil(self as ffi::RpsFormat) != 0 }
+    }
+
+    /// Returns whether a format has only a depth component and no stencil component.
+    #[inline]
+    pub fn is_depth_only(self) -> bool {
+        unsafe { ffi::rpsFormatIsDepthOnly(self as ffi::RpsFormat) != 0 }
+    }
+
+    /// Returns the single element byte size for a format.
+    ///
+    /// For most formats one element is one pixel. This is different for block compressed formats, e.g.
+    /// RPS_FORMAT_BC1_UNORM. The byte size of one block will be returned for these instead.
+    ///
+    /// # Returns
+    /// 0 if the format does not support element wise usage, size of bytes of a single element otherwise.
+    #[inline]
+    pub fn element_bytes(self) -> u32 {
+        unsafe { ffi::rpsGetFormatElementBytes(self as ffi::RpsFormat) }
     }
 }

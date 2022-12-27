@@ -4,6 +4,7 @@ version = "0.2.0"
 description = "Unsafe bindings for RPS API generated with bindgen"
 categories = ["api-bindings", "external-ffi-bindings", "game-development", "graphics", "rendering"]
 keywords = ["rps", "amd", "vk", "vulkan", "d3d12", "d3d11", "gamedev", "shaders"]
+links = "rps"
 edition.workspace = true
 license.workspace = true
 repository.workspace = true
