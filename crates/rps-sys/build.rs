@@ -1,6 +1,8 @@
 use std::env;
 use std::path::PathBuf;
 
+use bindgen::callbacks;
+
 #[cfg(all(not(target_os = "windows"), any(feature = "d3d11", feature = "d3d12")))]
 compile_error!("D3D is not supported on this platform");
 
@@ -52,6 +54,7 @@ fn main() {
         .allowlist_function("PFN_rps.*")
         .allowlist_type("Rps.*")
         .parse_callbacks(Box::new(bindgen::CargoCallbacks))
+        .parse_callbacks(Box::new(RustDoc))
         .generate()
         .expect("Failed to generate bindings")
         .write_to_file(out_path.join("bindings.rs"))
@@ -129,4 +132,29 @@ fn main() {
     }
 
     build.compile("rps");
+}
+
+/// Removes `cpp` specific comments for better rustdoc output.
+#[derive(Debug)]
+struct RustDoc;
+
+impl callbacks::ParseCallbacks for RustDoc {
+    fn process_comment(&self, comment: &str) -> Option<String> {
+        let mut comment = comment.trim();
+
+        if comment.starts_with("< ") {
+            comment = comment.strip_prefix("< ").unwrap_or_default();
+        }
+
+        if comment.starts_with("@brief ") {
+            comment = comment.strip_prefix("@brief ").unwrap_or_default();
+        }
+
+        let comment = comment
+            .replace("float[4]", "`float[4]`")
+            .replace("<c><i>", "[")
+            .replace("</i></c>", "]");
+
+        Some(comment)
+    }
 }
