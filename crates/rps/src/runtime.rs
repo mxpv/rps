@@ -131,16 +131,42 @@ bitflags! {
         const ALL_GPU_WRITE = ffi::RpsAccessFlagBits_RPS_ACCESS_ALL_GPU_WRITE;
 
         /// Bitwise OR of all possible GPU readonly access flags.
-        const RPS_ACCESS_ALL_GPU_READONLY = ffi::RpsAccessFlagBits_RPS_ACCESS_ALL_GPU_READONLY;
+        const ALL_GPU_READONLY = ffi::RpsAccessFlagBits_RPS_ACCESS_ALL_GPU_READONLY;
 
         /// Bitwise OR of all possible GPU access flags.
-        const RPS_ACCESS_ALL_GPU = ffi::RpsAccessFlagBits_RPS_ACCESS_ALL_GPU;
+        const ALL_GPU = ffi::RpsAccessFlagBits_RPS_ACCESS_ALL_GPU;
 
         /// Bitwise OR of all possible CPU access flags.
-        const RPS_ACCESS_ALL_CPU = ffi::RpsAccessFlagBits_RPS_ACCESS_ALL_CPU;
+        const ALL_CPU = ffi::RpsAccessFlagBits_RPS_ACCESS_ALL_CPU;
 
         /// Bitwise OR of all GPU / CPU access, excluding decorator flags such as RPS_ACCESS_RELAXED_ORDER_BIT and RPS_ACCESS_NO_VIEW_BIT.
-        const RPS_ACCESS_ALL_ACCESS_MASK = ffi::RpsAccessFlagBits_RPS_ACCESS_ALL_ACCESS_MASK;
+        const ALL_ACCESS_MASK = ffi::RpsAccessFlagBits_RPS_ACCESS_ALL_ACCESS_MASK;
+    }
+}
+
+bitflags! {
+    /// Bitflags for shader stages.
+    pub struct ShaderStage: u32 {
+        /// Vertex shader stage.
+        const VS = ffi::RpsShaderStageBits_RPS_SHADER_STAGE_VS;
+        /// Pixel shader stage.
+        const PS = ffi::RpsShaderStageBits_RPS_SHADER_STAGE_PS;
+        /// Geometry shader stage.
+        const GS = ffi::RpsShaderStageBits_RPS_SHADER_STAGE_GS;
+        /// Compute shader stage.
+        const CS = ffi::RpsShaderStageBits_RPS_SHADER_STAGE_CS;
+        /// Hull shader stage.
+        const HS = ffi::RpsShaderStageBits_RPS_SHADER_STAGE_HS;
+        /// Domain shader stage.
+        const DS = ffi::RpsShaderStageBits_RPS_SHADER_STAGE_DS;
+        /// Raytracing shader stage.
+        const RAYTRACING = ffi::RpsShaderStageBits_RPS_SHADER_STAGE_RAYTRACING;
+        /// Amplification shader stage.
+        const AS = ffi::RpsShaderStageBits_RPS_SHADER_STAGE_AS;
+        /// Mesh shader stage.
+        const MS = ffi::RpsShaderStageBits_RPS_SHADER_STAGE_MS;
+        /// All shader stages.
+        const ALL = ffi::RpsShaderStageBits_RPS_SHADER_STAGE_ALL;
     }
 }
 
