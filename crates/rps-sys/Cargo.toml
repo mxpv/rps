@@ -1,6 +1,6 @@
 [package]
 name = "rps-sys"
-version = "0.3.0"
+version = "0.4.0"
 description = "Unsafe bindings for RPS API generated with bindgen"
 categories = ["api-bindings", "external-ffi-bindings", "game-development", "graphics", "rendering"]
 keywords = ["amd", "vulkan", "d3d12", "d3d11", "shaders"]
