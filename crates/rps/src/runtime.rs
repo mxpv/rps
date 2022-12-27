@@ -170,6 +170,136 @@ bitflags! {
     }
 }
 
+/// Graphics resource and argument data usage semantics.
+#[repr(u32)]
+#[derive(Debug, Copy, Clone)]
+pub enum Semantic {
+    /// No semantics.
+    Unspecified = ffi::RpsSemantic_RPS_SEMANTIC_UNSPECIFIED,
+
+    // Shaders:
+    /// Reserved for future use.
+    VertexShader = ffi::RpsSemantic_RPS_SEMANTIC_VERTEX_SHADER,
+    /// Reserved for future use.
+    PixelShader = ffi::RpsSemantic_RPS_SEMANTIC_PIXEL_SHADER,
+    /// Reserved for future use.
+    GeometryShader = ffi::RpsSemantic_RPS_SEMANTIC_GEOMETRY_SHADER,
+    /// Reserved for future use.
+    ComputeShader = ffi::RpsSemantic_RPS_SEMANTIC_COMPUTE_SHADER,
+    /// Reserved for future use.
+    HullShader = ffi::RpsSemantic_RPS_SEMANTIC_HULL_SHADER,
+    /// Reserved for future use.
+    DomainShader = ffi::RpsSemantic_RPS_SEMANTIC_DOMAIN_SHADER,
+    /// Reserved for future use.
+    RaytracingPipeline = ffi::RpsSemantic_RPS_SEMANTIC_RAYTRACING_PIPELINE,
+    /// Reserved for future use.
+    AmplificationShader = ffi::RpsSemantic_RPS_SEMANTIC_AMPLIFICATION_SHADER,
+    /// Reserved for future use.
+    MeshShader = ffi::RpsSemantic_RPS_SEMANTIC_MESH_SHADER,
+
+    // States:
+    /// Reserved for future use.
+    VertexLayout = ffi::RpsSemantic_RPS_SEMANTIC_VERTEX_LAYOUT,
+    /// Reserved for future use.
+    StreamOutLayout = ffi::RpsSemantic_RPS_SEMANTIC_STREAM_OUT_LAYOUT,
+    /// Reserved for future use.
+    StreamOutDesc = ffi::RpsSemantic_RPS_SEMANTIC_STREAM_OUT_DESC,
+    /// Reserved for future use.
+    BlendState = ffi::RpsSemantic_RPS_SEMANTIC_BLEND_STATE,
+    /// Reserved for future use.
+    RenderTargetBlend = ffi::RpsSemantic_RPS_SEMANTIC_RENDER_TARGET_BLEND,
+    /// Reserved for future use.
+    DepthStencilState = ffi::RpsSemantic_RPS_SEMANTIC_DEPTH_STENCIL_STATE,
+    /// Reserved for future use.
+    RasterizerState = ffi::RpsSemantic_RPS_SEMANTIC_RASTERIZER_STATE,
+
+    /// Usage as a viewport.
+    /// The data type must be [Viewport].
+    Viewport = ffi::RpsSemantic_RPS_SEMANTIC_VIEWPORT,
+
+    /// Usage as a scissor rectangle.
+    /// The data type must be [Rect].
+    Scissor = ffi::RpsSemantic_RPS_SEMANTIC_SCISSOR,
+
+    /// Usage as primitive topology.
+    /// The data must be one of the values specified by [PrimitiveTopology].
+    PrimitiveTopology = ffi::RpsSemantic_RPS_SEMANTIC_PRIMITIVE_TOPOLOGY,
+
+    /// Reserved for future use.
+    PatchControlPoints = ffi::RpsSemantic_RPS_SEMANTIC_PATCH_CONTROL_POINTS,
+
+    /// Reserved for future use.
+    PrimitiveStripCutIndex = ffi::RpsSemantic_RPS_SEMANTIC_PRIMITIVE_STRIP_CUT_INDEX,
+
+    /// Reserved for future use.
+    BlendFactor = ffi::RpsSemantic_RPS_SEMANTIC_BLEND_FACTOR,
+
+    /// Reserved for future use.
+    StencilRef = ffi::RpsSemantic_RPS_SEMANTIC_STENCIL_REF,
+
+    /// Reserved for future use.
+    DepthBounds = ffi::RpsSemantic_RPS_SEMANTIC_DEPTH_BOUNDS,
+
+    /// Reserved for future use.
+    SampleLocation = ffi::RpsSemantic_RPS_SEMANTIC_SAMPLE_LOCATION,
+
+    /// Reserved for future use.
+    ShadingRate = ffi::RpsSemantic_RPS_SEMANTIC_SHADING_RATE,
+
+    /// Usage as a color clear value. The data type must be float[4].
+    ColorClearValue = ffi::RpsSemantic_RPS_SEMANTIC_COLOR_CLEAR_VALUE,
+
+    /// Usage as a depth clear value. The data type must be float.
+    DepthClearValue = ffi::RpsSemantic_RPS_SEMANTIC_DEPTH_CLEAR_VALUE,
+
+    /// Usage as a stencil clear value. The data type must be uint32_t, only the lower 8 bit will be used.
+    StencilClearValue = ffi::RpsSemantic_RPS_SEMANTIC_STENCIL_CLEAR_VALUE,
+
+    // Resource bindings:
+    /// Bound as a vertex buffer. The semantic index indicates the vertex buffer binding slot.
+    VertexBuffer = ffi::RpsSemantic_RPS_SEMANTIC_VERTEX_BUFFER,
+
+    /// Bound as an index buffer.
+    IndexBuffer = ffi::RpsSemantic_RPS_SEMANTIC_INDEX_BUFFER,
+
+    /// Bound as an indirect argument buffer.
+    IndirectArgs = ffi::RpsSemantic_RPS_SEMANTIC_INDIRECT_ARGS,
+
+    /// Bound as an indirect count buffer.
+    StreamOutBuffer = ffi::RpsSemantic_RPS_SEMANTIC_STREAM_OUT_BUFFER,
+
+    /// Bound for write as a stream out buffer. The semantic index indicates the stream out buffer binding slot.
+    IndirectCount = ffi::RpsSemantic_RPS_SEMANTIC_INDIRECT_COUNT,
+
+    /// Bound as a render target view. The semantic index indicates the render target slot.
+    RenderTarget = ffi::RpsSemantic_RPS_SEMANTIC_RENDER_TARGET,
+
+    /// Bound as a depth stencil view.
+    DepthStencilTarget = ffi::RpsSemantic_RPS_SEMANTIC_DEPTH_STENCIL_TARGET,
+
+    /// Bound as a shading rate image in a Variable Rate Shading (VRS) pass.
+    ShadingRateImage = ffi::RpsSemantic_RPS_SEMANTIC_SHADING_RATE_IMAGE,
+
+    /// Bound as a resolve target. The semantic index indicates the render
+    /// target slot of the resolve source.
+    ResolveTarget = ffi::RpsSemantic_RPS_SEMANTIC_RESOLVE_TARGET,
+
+    /// User defined resource view binding. This is intended for shader resource views and unordered access views where
+    /// resources are bound to programmable shaders instead of fixed function binding points.
+    UserResourceBinding = ffi::RpsSemantic_RPS_SEMANTIC_USER_RESOURCE_BINDING,
+}
+
+impl Semantic {
+    /// Number of defined semantics.
+    pub const COUNT: usize = ffi::RpsSemantic_RPS_SEMANTIC_COUNT as usize;
+
+    /// Start of the dynamic state semantic enumeration values.
+    pub const DYNAMIC_STATE_BEGIN: Self = Self::Viewport;
+
+    /// Start of the resource binding enumeration values.
+    pub const RESOURCE_BINDING_BEGIN: Self = Self::VertexBuffer;
+}
+
 /// Supported RPS formats.
 #[repr(u32)]
 #[derive(Debug, Copy, Clone)]
