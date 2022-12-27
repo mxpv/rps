@@ -4,6 +4,7 @@ use std::{ffi::CStr, fmt, os::raw::c_void};
 
 use bitflags::bitflags;
 
+use crate::Error;
 use rps_sys as ffi;
 
 bitflags! {
@@ -697,25 +698,33 @@ impl Format {
 /// Callback functions of a runtime.
 pub trait Callbacks {
     /// Render graph phase build callback.
-    fn build_render_graph_phases(&self) {}
+    fn build_render_graph_phases(&self) -> Result<(), Error> {
+        Ok(())
+    }
 
     /// Runtime destruction callback.
     fn destroy_runtime(&self) {}
 
     /// Heap creation callback.
-    fn create_heap(&self) {}
+    fn create_heap(&self) -> Result<(), Error> {
+        Ok(())
+    }
 
     /// Heap destruction callback.
     fn destroy_heap(&self) {}
 
     /// Resource creation callback.
-    fn create_resource(&self) {}
+    fn create_resource(&self) -> Result<(), Error> {
+        Ok(())
+    }
 
     /// Resource destruction callback.
     fn destroy_resource(&self) {}
 
     /// Node resource creation callback.
-    fn create_node_resources(&self) {}
+    fn create_node_resources(&self) -> Result<(), Error> {
+        Ok(())
+    }
 
     /// Destroys the user defined resources associated with a node.
     fn destroy_node_resources(&self) {}
@@ -733,8 +742,10 @@ extern "C" fn build_render_graph_phases(
     _phase_info: *mut *const ffi::RpsRenderGraphPhaseInfo,
     _num_phases: *mut u32,
 ) -> ffi::RpsResult {
-    get_callbacks(user_data).build_render_graph_phases();
-    ffi::RpsResult_RPS_OK
+    match get_callbacks(user_data).build_render_graph_phases() {
+        Ok(()) => ffi::RpsResult_RPS_OK,
+        Err(err) => err.into(),
+    }
 }
 
 extern "C" fn destroy_runtime(user_data: *mut c_void) {
@@ -745,8 +756,10 @@ extern "C" fn create_heap(
     user_data: *mut c_void,
     _args: *const ffi::RpsRuntimeOpCreateHeapArgs,
 ) -> ffi::RpsResult {
-    get_callbacks(user_data).create_heap();
-    ffi::RpsResult_RPS_OK
+    match get_callbacks(user_data).create_heap() {
+        Ok(()) => ffi::RpsResult_RPS_OK,
+        Err(err) => err.into(),
+    }
 }
 
 extern "C" fn destroy_heap(user_data: *mut c_void, _args: *const ffi::RpsRuntimeOpDestroyHeapArgs) {
@@ -757,8 +770,10 @@ extern "C" fn create_resource(
     user_data: *mut c_void,
     _args: *const ffi::RpsRuntimeOpCreateResourceArgs,
 ) -> ffi::RpsResult {
-    get_callbacks(user_data).create_resource();
-    ffi::RpsResult_RPS_OK
+    match get_callbacks(user_data).create_resource() {
+        Ok(()) => ffi::RpsResult_RPS_OK,
+        Err(err) => err.into(),
+    }
 }
 
 extern "C" fn destroy_resource(
@@ -772,8 +787,10 @@ extern "C" fn create_node_resources(
     user_data: *mut c_void,
     _args: *const ffi::RpsRuntimeOpCreateNodeUserResourcesArgs,
 ) -> ffi::RpsResult {
-    get_callbacks(user_data).create_node_resources();
-    ffi::RpsResult_RPS_OK
+    match get_callbacks(user_data).create_node_resources() {
+        Ok(()) => ffi::RpsResult_RPS_OK,
+        Err(err) => err.into(),
+    }
 }
 
 extern "C" fn destroy_node_resources(user_data: *mut c_void) {

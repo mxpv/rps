@@ -21,114 +21,124 @@ macro_rules! call {
 }
 
 /// Error codes used by operations of the RPS library.
+#[repr(i32)]
 #[derive(Debug, Error, Copy, Clone)]
 pub enum Error {
     #[error("Unspecified error")]
-    Unspecified,
+    Unspecified = ffi::RpsResult_RPS_ERROR_UNSPECIFIED,
 
     /// Failure due to an unrecognized command.
     #[error("Unrecognized command")]
-    UnrecognizedCommand,
+    UnrecognizedCommand = ffi::RpsResult_RPS_ERROR_UNRECOGNIZED_COMMAND,
 
     /// Failure due to invalid arguments.
     #[error("Invalid arguments")]
-    InvalidArguments,
+    InvalidArguments = ffi::RpsResult_RPS_ERROR_INVALID_ARGUMENTS,
 
     /// Failure due to invalid data.
     #[error("Invalid data")]
-    InvalidData,
+    InvalidData = ffi::RpsResult_RPS_ERROR_INVALID_DATA,
 
     /// Failure due to an invalid operation.
     #[error("Invalid operation")]
-    InvalidOperation,
+    InvalidOperation = ffi::RpsResult_RPS_ERROR_INVALID_OPERATION,
 
     /// Failure due to running out of memory.
     #[error("Out of memory")]
-    OutOfMemory,
+    OutOfMemory = ffi::RpsResult_RPS_ERROR_OUT_OF_MEMORY,
 
     /// Failure due to not being able to find the specified file.
     #[error("File not found")]
-    FileNotFound,
+    FileNotFound = ffi::RpsResult_RPS_ERROR_FILE_NOT_FOUND,
 
     /// Failure due to an invalid file format.
     #[error("Invalid file format")]
-    InvalidFileFormat,
+    InvalidFileFormat = ffi::RpsResult_RPS_ERROR_INVALID_FILE_FORMAT,
 
     /// Failure due to the file format version being too old.
     #[error("File format version too old")]
-    UnsupportedVersionTooOld,
+    UnsupportedVersionTooOld = ffi::RpsResult_RPS_ERROR_UNSUPPORTED_VERSION_TOO_OLD,
 
     /// Failure due to the file format version being too new.
     #[error("File format version too new")]
-    UnsupportedVersionTooNew,
+    UnsupportedVersionTooNew = ffi::RpsResult_RPS_ERROR_UNSUPPORTED_VERSION_TOO_NEW,
 
     /// Failure due to an unknown node.
     #[error("Unknown node")]
-    UnknownNode,
+    UnknownNode = ffi::RpsResult_RPS_ERROR_UNKNOWN_NODE,
 
     /// Failure due to an index being out of its valid bounds.
     #[error("Index out of bounds")]
-    IndexOutOfBounds,
+    IndexOutOfBounds = ffi::RpsResult_RPS_ERROR_INDEX_OUT_OF_BOUNDS,
 
     /// Failure due to a command being already finalized.
     #[error("Command already finalized")]
-    CommandAlreadyFinal,
+    CommandAlreadyFinal = ffi::RpsResult_RPS_ERROR_COMMAND_ALREADY_FINAL,
 
     /// Failure due to a data layout mismatch between runtime and shader.
     #[error("Data layout mismatch between runtime and shader")]
-    InteropDataLayoutMismatch,
+    InteropDataLayoutMismatch = ffi::RpsResult_RPS_ERROR_INTEROP_DATA_LAYOUT_MISMATCH,
 
     /// Failure due to a key not being found.
     #[error("Key not found")]
-    KeyNotFound,
+    KeyNotFound = ffi::RpsResult_RPS_ERROR_KEY_NOT_FOUND,
 
     /// Failure due to a key value being duplicated where it is required to be unique.
     #[error("Key duplicated")]
-    KeyDuplicated,
+    KeyDuplicated = ffi::RpsResult_RPS_ERROR_KEY_DUPLICATED,
 
     /// Failure due to a feature not being implemented yet.
     #[error("Not implemented")]
-    NotImplemented,
+    NotImplemented = ffi::RpsResult_RPS_ERROR_NOT_IMPLEMENTED,
 
     /// Failure due to an integer overflow.
     #[error("Integer overflow")]
-    IntegerOverflow,
+    IntegerOverflow = ffi::RpsResult_RPS_ERROR_INTEGER_OVERFLOW,
 
     /// Failure due to exclusive ranges overlapping.
     #[error("Exclusive ranges overlapping")]
-    RangeOverlapping,
+    RangeOverlapping = ffi::RpsResult_RPS_ERROR_RANGE_OVERLAPPING,
 
     /// Failure due to rpsRenderPipelineValidate finding an invalid pipeline configuration. More details are provided
     /// via output of the device print function.
     #[error("Invalid pipeline configuration")]
-    ValidationFailed,
+    ValidationFailed = ffi::RpsResult_RPS_ERROR_VALIDATION_FAILED,
 
     /// Failure due to a compiled RPSL shader program being ill formed. Normally indicates a compiler error.
     #[error("Compiler error")]
-    InvalidProgram,
+    InvalidProgram = ffi::RpsResult_RPS_ERROR_INVALID_PROGRAM,
 
     /// Failure due to an RPSL module being incompatible with the current runtime.
     #[error("RPSL module is incompatible with the current runtime")]
-    UnsupportedModuleVersion,
+    UnsupportedModuleVersion = ffi::RpsResult_RPS_ERROR_UNSUPPORTED_MODULE_VERSION,
 
     /// Failure due to a failed type safety check.
     #[error("Type safety check failed")]
-    TypeMismatch,
+    TypeMismatch = ffi::RpsResult_RPS_ERROR_TYPE_MISMATCH,
 
     /// Failure due to a feature not being supported.
     #[error("Not supported")]
-    NotSupported,
+    NotSupported = ffi::RpsResult_RPS_ERROR_NOT_SUPPORTED,
 
     /// Failure due to failed a runtime API without direct mapping of the API error code.
     #[error("Runtime API error")]
-    RuntimeApiError,
+    RuntimeApiError = ffi::RpsResult_RPS_ERROR_RUNTIME_API_ERROR,
 
     /// Failure due to an RPS library internal error.
     #[error("RPS library internal error")]
-    InternalError,
+    InternalError = ffi::RpsResult_RPS_ERROR_INTERNAL_ERROR,
 
     #[error("Unmapped error code: {0}")]
-    Unknown(ffi::RpsResult),
+    Unknown(ffi::RpsResult) = i32::MAX,
+}
+
+impl From<Error> for ffi::RpsResult {
+    fn from(value: Error) -> Self {
+        match value {
+            Error::Unknown(code) => code,
+            _ => i32::from(value),
+        }
+    }
 }
 
 impl From<ffi::RpsResult> for Error {
