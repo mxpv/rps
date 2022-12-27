@@ -10,6 +10,11 @@ license.workspace = true
 repository.workspace = true
 homepage.workspace = true
 
+[features]
+d3d12 = []
+d3d11 = []
+vk = []
+
 [dependencies]
 
 [build-dependencies]

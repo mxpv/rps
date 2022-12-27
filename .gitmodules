@@ -1,3 +1,6 @@
 [submodule "crates/rps-sys/RenderPipelineShaders"]
 	path = crates/rps-sys/RenderPipelineShaders
 	url = https://github.com/GPUOpen-LibrariesAndSDKs/RenderPipelineShaders.git
+[submodule "crates/rps-sys/Vulkan-Headers"]
+	path = crates/rps-sys/Vulkan-Headers
+	url = https://github.com/KhronosGroup/Vulkan-Headers.git

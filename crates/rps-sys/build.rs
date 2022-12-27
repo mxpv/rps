@@ -1,23 +1,72 @@
 use std::env;
 use std::path::PathBuf;
 
+#[cfg(all(not(target_os = "windows"), any(feature = "d3d11", feature = "d3d12")))]
+compile_error!("D3D is not supported on this platform");
+
 fn main() {
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
 
-    bindgen::builder()
+    #[allow(unused_mut)]
+    let mut bindgen = bindgen::builder()
         .clang_arg("-I./RenderPipelineShaders/include")
-        .header("RenderPipelineShaders/include/rps/rps.h")
+        .header("RenderPipelineShaders/include/rps/rps.h");
+
+    #[cfg(feature = "d3d12")]
+    {
+        bindgen = bindgen
+            .header("RenderPipelineShaders/include/rps/runtime/d3d_common/rps_d3d_common.h")
+            .header("RenderPipelineShaders/include/rps/runtime/d3d12/rps_d3d12_runtime.h");
+    }
+
+    #[cfg(feature = "d3d11")]
+    {
+        bindgen = bindgen
+            .header("RenderPipelineShaders/include/rps/runtime/d3d_common/rps_d3d_common.h")
+            .header("RenderPipelineShaders/include/rps/runtime/d3d11/rps_d3d11_runtime.h");
+    }
+
+    #[cfg(feature = "vk")]
+    {
+        bindgen = bindgen
+            .clang_arg("-I./Vulkan-Headers/include")
+            .header("RenderPipelineShaders/include/rps/runtime/vk/rps_vk_runtime.h")
+            .header_contents("fixup_vk.h", "#define RPS_IMPL_OPAQUE_HANDLE(x, y, z)")
+            .blocklist_type("Vk.*")
+            .raw_line("type VkDevice = u64;")
+            .raw_line("type VkPhysicalDevice = u64;")
+            .raw_line("type VkImage = u64;")
+            .raw_line("type VkImageView = u64;")
+            .raw_line("type VkImageLayout = u64;")
+            .raw_line("type VkBuffer = u64;")
+            .raw_line("type VkBufferView = u64;")
+            .raw_line("type VkDeviceMemory = u64;")
+            .raw_line("type VkRenderPass = u64;")
+            .raw_line("type VkFormat = u64;");
+    }
+
+    bindgen
         .rustfmt_bindings(true)
         .size_t_is_usize(true)
         .allowlist_function("rps.*")
         .allowlist_function("PFN_rps.*")
         .allowlist_type("Rps.*")
+        .parse_callbacks(Box::new(bindgen::CargoCallbacks))
         .generate()
         .expect("Failed to generate bindings")
         .write_to_file(out_path.join("bindings.rs"))
         .expect("Failed to write bindings file");
 
     let mut build = cc::Build::new();
+
+    #[cfg(feature = "d3d12")]
+    build.define("RPS_D3D12_RUNTIME", "1");
+
+    #[cfg(feature = "d3d11")]
+    build.define("RPS_D3D11_RUNTIME", "1");
+
+    #[cfg(feature = "vk")]
+    build.define("RPS_VK_RUNTIME", "1");
 
     build
         .cpp(true)
@@ -49,6 +98,35 @@ fn main() {
         .file("RenderPipelineShaders/src/runtime/common/rps_runtime_backend.cpp")
         .file("RenderPipelineShaders/src/runtime/common/rps_runtime_device.cpp")
         .file("RenderPipelineShaders/src/runtime/common/rps_subprogram.cpp");
+
+    #[cfg(feature = "d3d12")]
+    {
+        build
+            .file("RenderPipelineShaders/src/runtime/d3d12/rps_d3d12_built_in_nodes.cpp")
+            .file("RenderPipelineShaders/src/runtime/d3d12/rps_d3d12_runtime_backend.cpp")
+            .file("RenderPipelineShaders/src/runtime/d3d12/rps_d3d12_runtime_backend_debug.cpp")
+            .file("RenderPipelineShaders/src/runtime/d3d12/rps_d3d12_runtime_backend_views.cpp")
+            .file("RenderPipelineShaders/src/runtime/d3d12/rps_d3d12_runtime_device.cpp");
+    }
+
+    #[cfg(feature = "d3d11")]
+    {
+        build
+            .file("RenderPipelineShaders/src/runtime/d3d11/rps_d3d11_built_in_nodes.cpp")
+            .file("RenderPipelineShaders/src/runtime/d3d11/rps_d3d11_runtime_backend.cpp")
+            .file("RenderPipelineShaders/src/runtime/d3d11/rps_d3d11_runtime_backend_views.cpp")
+            .file("RenderPipelineShaders/src/runtime/d3d11/rps_d3d11_runtime_device.cpp");
+    }
+
+    #[cfg(feature = "vk")]
+    {
+        build
+            .include("Vulkan-Headers/include")
+            .file("RenderPipelineShaders/src/runtime/vk/rps_vk_built_in_nodes.cpp")
+            .file("RenderPipelineShaders/src/runtime/vk/rps_vk_formats.cpp")
+            .file("RenderPipelineShaders/src/runtime/vk/rps_vk_runtime_backend.cpp")
+            .file("RenderPipelineShaders/src/runtime/vk/rps_vk_runtime_device.cpp");
+    }
 
     build.compile("rps");
 }
