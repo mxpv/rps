@@ -50,6 +50,8 @@ fn main() {
     bindgen
         .rustfmt_bindings(true)
         .size_t_is_usize(true)
+        .derive_debug(true)
+        .derive_default(true)
         .allowlist_function("rps.*")
         .allowlist_function("PFN_rps.*")
         .allowlist_type("Rps.*")

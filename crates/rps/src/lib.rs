@@ -1,5 +1,7 @@
 //! High level Rust wrapper for RPS API.
 
+use std::ptr;
+
 pub mod runtime;
 
 use thiserror::Error;
@@ -162,5 +164,63 @@ impl From<ffi::RpsResult> for Error {
             ffi::RpsResult_RPS_ERROR_INTERNAL_ERROR => Error::InternalError,
             _ => Error::Unknown(value),
         }
+    }
+}
+
+/// Helper structure to build `ffi::RpsDeviceCreateInfo` for a new device.
+#[derive(Default)]
+pub struct DeviceBuilder {
+    create_info: ffi::RpsDeviceCreateInfo,
+}
+
+impl DeviceBuilder {
+    /// Create a new device builder.
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    /// Specify requirements for a single memory allocation.
+    ///
+    /// # Arguments
+    ///
+    /// * `size` - Size of the allocation in bytes.
+    /// * `alignment` - Minimum alignment requirement of the allocation in bytes.
+    pub fn data_alloc_info(&mut self, size: usize, alignment: usize) -> &mut Self {
+        self.create_info.privateDataAllocInfo = ffi::RpsAllocInfo { size, alignment };
+        self
+    }
+
+    /// Creates a device object.
+    pub fn build(&self) -> Result<Device, Error> {
+        let mut device = ptr::null_mut();
+
+        call!(ffi::rpsDeviceCreate(&self.create_info, &mut device))?;
+
+        Ok(Device { device })
+    }
+}
+
+/// RPS device object.
+///
+/// The RPS device is used as the main state object for the RPS runtime API. It provides a central location for data
+/// and callbacks of the rest of the software stack.
+pub struct Device {
+    device: ffi::RpsDevice,
+}
+
+impl Drop for Device {
+    fn drop(&mut self) {
+        unsafe { ffi::rpsDeviceDestroy(self.device) };
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_device() {
+        let device = DeviceBuilder::default().build().unwrap();
+        drop(device);
     }
 }
