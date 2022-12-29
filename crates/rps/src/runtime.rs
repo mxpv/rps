@@ -1,6 +1,6 @@
 //! Runtime API wrappers.
 
-use std::{ffi::CStr, fmt, os::raw::c_void};
+use std::{ffi::CStr, fmt, os::raw::c_void, slice};
 
 use bitflags::bitflags;
 
@@ -698,7 +698,11 @@ impl Format {
 /// Callback functions of a runtime.
 pub trait Callbacks {
     /// Render graph phase build callback.
-    fn build_render_graph_phases(&self) -> Result<(), Error> {
+    fn build_render_graph_phases(
+        &self,
+        _render_graph: RenderGraph,
+        _phase_info: &[*const ffi::RpsRenderGraphPhaseInfo],
+    ) -> Result<(), Error> {
         Ok(())
     }
 
@@ -706,23 +710,26 @@ pub trait Callbacks {
     fn destroy_runtime(&self) {}
 
     /// Heap creation callback.
-    fn create_heap(&self) -> Result<(), Error> {
+    fn create_heap(&self, _args: &ffi::RpsRuntimeOpCreateHeapArgs) -> Result<(), Error> {
         Ok(())
     }
 
     /// Heap destruction callback.
-    fn destroy_heap(&self) {}
+    fn destroy_heap(&self, _args: &ffi::RpsRuntimeOpDestroyHeapArgs) {}
 
     /// Resource creation callback.
-    fn create_resource(&self) -> Result<(), Error> {
+    fn create_resource(&self, _args: &ffi::RpsRuntimeOpCreateResourceArgs) -> Result<(), Error> {
         Ok(())
     }
 
     /// Resource destruction callback.
-    fn destroy_resource(&self) {}
+    fn destroy_resource(&self, _args: &ffi::RpsRuntimeOpDestroyResourceArgs) {}
 
     /// Node resource creation callback.
-    fn create_node_resources(&self) -> Result<(), Error> {
+    fn create_node_resources(
+        &self,
+        _args: &ffi::RpsRuntimeOpCreateNodeUserResourcesArgs,
+    ) -> Result<(), Error> {
         Ok(())
     }
 
@@ -730,19 +737,25 @@ pub trait Callbacks {
     fn destroy_node_resources(&self) {}
 
     /// Debug marker recording callback.
-    fn record_debug_marker(&self) {}
+    fn record_debug_marker(&self, _args: &ffi::RpsRuntimeOpRecordDebugMarkerArgs) {}
 
     /// Debug name setting callback.
-    fn set_debug_name(&self) {}
+    fn set_debug_name(&self, _args: &ffi::RpsRuntimeOpSetDebugNameArgs) {}
 }
+
+pub type RenderGraph = ffi::RpsRenderGraph;
 
 extern "C" fn build_render_graph_phases(
     user_data: *mut c_void,
-    _render_graph: ffi::RpsRenderGraph,
-    _phase_info: *mut *const ffi::RpsRenderGraphPhaseInfo,
-    _num_phases: *mut u32,
+    render_graph: ffi::RpsRenderGraph,
+    phase_info: *mut *const ffi::RpsRenderGraphPhaseInfo,
+    num_phases: *mut u32,
 ) -> ffi::RpsResult {
-    match get_callbacks(user_data).build_render_graph_phases() {
+    let phase_info: &[*const ffi::RpsRenderGraphPhaseInfo] =
+        unsafe { slice::from_raw_parts(phase_info, *num_phases as usize) };
+
+    let result = get_callbacks(user_data).build_render_graph_phases(render_graph, phase_info);
+    match result {
         Ok(()) => ffi::RpsResult_RPS_OK,
         Err(err) => err.into(),
     }
@@ -754,23 +767,28 @@ extern "C" fn destroy_runtime(user_data: *mut c_void) {
 
 extern "C" fn create_heap(
     user_data: *mut c_void,
-    _args: *const ffi::RpsRuntimeOpCreateHeapArgs,
+    args: *const ffi::RpsRuntimeOpCreateHeapArgs,
 ) -> ffi::RpsResult {
-    match get_callbacks(user_data).create_heap() {
+    let args = unsafe { &*args };
+    let result = get_callbacks(user_data).create_heap(args);
+    match result {
         Ok(()) => ffi::RpsResult_RPS_OK,
         Err(err) => err.into(),
     }
 }
 
-extern "C" fn destroy_heap(user_data: *mut c_void, _args: *const ffi::RpsRuntimeOpDestroyHeapArgs) {
-    get_callbacks(user_data).destroy_heap();
+extern "C" fn destroy_heap(user_data: *mut c_void, args: *const ffi::RpsRuntimeOpDestroyHeapArgs) {
+    let args = unsafe { &*args };
+    get_callbacks(user_data).destroy_heap(args);
 }
 
 extern "C" fn create_resource(
     user_data: *mut c_void,
-    _args: *const ffi::RpsRuntimeOpCreateResourceArgs,
+    args: *const ffi::RpsRuntimeOpCreateResourceArgs,
 ) -> ffi::RpsResult {
-    match get_callbacks(user_data).create_resource() {
+    let args = unsafe { &*args };
+    let result = get_callbacks(user_data).create_resource(args);
+    match result {
         Ok(()) => ffi::RpsResult_RPS_OK,
         Err(err) => err.into(),
     }
@@ -778,16 +796,19 @@ extern "C" fn create_resource(
 
 extern "C" fn destroy_resource(
     user_data: *mut c_void,
-    _args: *const ffi::RpsRuntimeOpDestroyResourceArgs,
+    args: *const ffi::RpsRuntimeOpDestroyResourceArgs,
 ) {
-    get_callbacks(user_data).destroy_resource();
+    let args = unsafe { &*args };
+    get_callbacks(user_data).destroy_resource(args);
 }
 
 extern "C" fn create_node_resources(
     user_data: *mut c_void,
-    _args: *const ffi::RpsRuntimeOpCreateNodeUserResourcesArgs,
+    args: *const ffi::RpsRuntimeOpCreateNodeUserResourcesArgs,
 ) -> ffi::RpsResult {
-    match get_callbacks(user_data).create_node_resources() {
+    let args = unsafe { &*args };
+    let result = get_callbacks(user_data).create_node_resources(args);
+    match result {
         Ok(()) => ffi::RpsResult_RPS_OK,
         Err(err) => err.into(),
     }
@@ -799,16 +820,18 @@ extern "C" fn destroy_node_resources(user_data: *mut c_void) {
 
 extern "C" fn record_debug_marker(
     user_data: *mut c_void,
-    _args: *const ffi::RpsRuntimeOpRecordDebugMarkerArgs,
+    args: *const ffi::RpsRuntimeOpRecordDebugMarkerArgs,
 ) {
-    get_callbacks(user_data).record_debug_marker();
+    let args = unsafe { &*args };
+    get_callbacks(user_data).record_debug_marker(args);
 }
 
 extern "C" fn set_debug_name(
     user_data: *mut c_void,
-    _args: *const ffi::RpsRuntimeOpSetDebugNameArgs,
+    args: *const ffi::RpsRuntimeOpSetDebugNameArgs,
 ) {
-    get_callbacks(user_data).set_debug_name();
+    let args = unsafe { &*args };
+    get_callbacks(user_data).set_debug_name(args);
 }
 
 fn get_callbacks<'a>(user_data: *mut c_void) -> &'a mut Box<dyn Callbacks> {
