@@ -247,7 +247,7 @@ pub enum Semantic {
     /// Reserved for future use.
     ShadingRate = ffi::RpsSemantic_RPS_SEMANTIC_SHADING_RATE,
 
-    /// Usage as a color clear value. The data type must be float[4].
+    /// Usage as a color clear value. The data type must be `float[4]`.
     ColorClearValue = ffi::RpsSemantic_RPS_SEMANTIC_COLOR_CLEAR_VALUE,
 
     /// Usage as a depth clear value. The data type must be float.
@@ -694,6 +694,18 @@ impl Format {
         unsafe { ffi::rpsGetFormatElementBytes(self as ffi::RpsFormat) }
     }
 }
+
+/// Screen region to render to.
+pub type Viewport = ffi::RpsViewport;
+
+/// Rectangular geometrical figure.
+pub type Rect = ffi::RpsRect;
+
+/// Primitive topology types.
+///
+/// This maps to common API primitive topology enumerations
+/// such as `D3D_PRIMITIVE_TOPOLOGY` and `VkPrimitiveTopology`.
+pub type PrimitiveTopology = ffi::RpsPrimitiveTopology;
 
 /// Callback functions of a runtime.
 pub trait Callbacks {

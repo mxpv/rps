@@ -154,8 +154,9 @@ impl callbacks::ParseCallbacks for RustDoc {
 
         let comment = comment
             .replace("float[4]", "`float[4]`")
-            .replace("<c><i>", "[")
-            .replace("</i></c>", "]");
+            .replace("<c><i>", "`")
+            .replace("</i></c>", "`")
+            .replace("ppArgResources[0]", "`ppArgResources[0]`"); // TODO: Find better way to handle this.
 
         Some(comment)
     }
